@@ -126,7 +126,7 @@ func trackFromUrl(u *url.URL) (track Track, err error) {
 
 // Download tries to download a spotify/deezer track from deezer
 // We return a pointer to ensure that user don't recklessly call TempDir.Delete on result
-func Download(u string, cancelChannel <-chan struct{}) (*TempDir, error) {
+func Download(u string, stopChannel <-chan struct{}) (*TempDir, error) {
 	// Create a temp dir
 	dirName, err := ioutil.TempDir("", "deemix*")
 	if err != nil {
@@ -148,7 +148,7 @@ func Download(u string, cancelChannel <-chan struct{}) (*TempDir, error) {
 	go func() {
 		select {
 		case <-doneChannel:
-		case <-cancelChannel:
+		case <-stopChannel:
 			_ = cmd.Process.Kill()
 		}
 	}()

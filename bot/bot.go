@@ -71,66 +71,98 @@ func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_, _ = s.ChannelMessageSendReply(c.ID, config.Repo, m.Reference())
 	case CommandStop:
 		serverList.Stop(g.ID)
+	case CommandSkip:
+		serverList.Skip(g.ID)
+	case CommandQueueView:
+		_, _ = s.ChannelMessageSendReply(c.ID, serverList.GetQueueText(g.ID), m.Reference())
 	case CommandPlay:
 		// Find the user's voice channel
 		for _, vs := range g.VoiceStates {
 			if vs.UserID == m.Author.ID {
-				// Try to play the music
-				state := serverList.Play(g.ID)
-				if state == nil {
-					_, _ = s.ChannelMessageSendReply(c.ID, "Bot is currently playing a music!", m.Reference())
-					return
-				}
 				// Play it in another goroutine
-				go playMusic(s, g.ID, vs.ChannelID, c.ID, strings.Trim(m.Content[len(config.Config.Prefix)+len(playCommand):], " "), state)
+				go playMusic(s, g.ID, vs.ChannelID, c.ID, strings.Trim(m.Content[len(config.Config.Prefix)+len(playCommand):], " "))
 				return
 			}
 		}
 		_, _ = s.ChannelMessageSendReply(c.ID, "Join a voice channel!", m.Reference())
+	case CommandPlayingTrack:
+		track, playing := serverList.GetPlayingTrack(g.ID)
+		if !playing {
+			_, _ = s.ChannelMessageSendReply(c.ID, "Nothing is playing!", m.Reference())
+		} else {
+			_, _ = s.ChannelMessageSendReply(c.ID, "Currently playing: "+track.String(), m.Reference())
+		}
 	}
 }
 
-func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, text string, serverState *ServerState) {
-	// Initialize the stop channel
-	defer serverList.DeleteServer(guildID)
-	// Search the music if needed
+// playMusic might initialize a voice connection to start playing the music,
+// or it might just push the track to queue
+func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, text string) {
+	// Get the track info or search and get the track info
 	track, err := deezer.KeywordToLink(text)
 	if err != nil {
 		_, _ = s.ChannelMessageSend(textChannelID, "Cannot play this music: "+err.Error())
 		return
 	}
-	// Download the music
-	tempDir, err := deezer.Download(track.Link, serverState.stopChan)
-	if err != nil {
-		log.Println("cannot download the music from deezer:", err)
+	// Add the track to server queue
+	serverState, newServer := serverList.Play(guildID, track)
+	if !newServer { // If this server is playing a music just send the info about queue and do nothing
+		_, _ = s.ChannelMessageSend(textChannelID, "Queued "+track.String())
 		return
 	}
-	defer tempDir.Delete()
-	// Check downloaded file
-	musics := tempDir.GetMusics()
-	if len(musics) == 0 {
-		_, _ = s.ChannelMessageSend(textChannelID, "Music not found")
-		return
-	}
-	_, _ = s.ChannelMessageSend(textChannelID, "Playing "+track.String())
+	// So if we reach this line, we can understand that this goroutine will be used to stream
+	// the music to Discord
+	// So when this goroutine is killed, we have to remove the server from this list
+	defer serverList.DeleteServer(guildID)
 	// Join the channel
 	vc, err := s.ChannelVoiceJoin(guildID, voiceChannelID, false, true)
 	if err != nil {
 		log.Println("cannot join the voice channel:", err)
 		return
 	}
+	defer func(vc *discordgo.VoiceConnection) {
+		_ = vc.Disconnect()
+	}(vc)
+	// Loop until the queue is done
+	for {
+		track, exists := serverState.GetPlayingTrack()
+		if !exists {
+			return
+		}
+		shouldStop := playMusicInVoice(s, vc, serverState, textChannelID, track)
+		if shouldStop || serverState.DequeTrack() == 0 {
+			return
+		}
+	}
+}
+
+// playMusicInVoice plays a music in a voice channel
+func playMusicInVoice(s *discordgo.Session, vc *discordgo.VoiceConnection, serverState *ServerState, textChannelID string, track deezer.Track) (shouldStop bool) {
+	_, _ = s.ChannelMessageSend(textChannelID, "Now playing "+track.String())
+	// Download the music
+	tempDir, err := deezer.Download(track.Link, serverState.stopChan)
+	if err != nil {
+		log.Println("cannot download the music from deezer:", err)
+		return true
+	}
+	defer tempDir.Delete()
+	// Check downloaded file
+	musics := tempDir.GetMusics()
+	if len(musics) == 0 {
+		_, _ = s.ChannelMessageSend(textChannelID, "Music not found")
+		return false
+	}
 	// Start streaming
 	_ = vc.Speaking(true)
 	defer func(vc *discordgo.VoiceConnection) {
 		_ = vc.Speaking(false)
-		_ = vc.Disconnect()
 	}(vc)
 	// Play it
 	done := make(chan error, 1)
 	encodeSession, err := dca.EncodeFile(musics[0], dca.StdEncodeOptions)
 	if err != nil {
 		log.Println("cannot encode:", encodeSession)
-		return
+		return false
 	}
 	defer encodeSession.Cleanup()
 	dca.NewStream(encodeSession, vc, done)
@@ -138,9 +170,13 @@ func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, tex
 	select {
 	case err = <-done:
 	case <-serverState.stopChan:
+		return true
+	case <-serverState.skipChan:
+		return false
 	}
 	if err != nil && err != io.EOF {
 		log.Println("there was a problem streaming the song:", err)
-		return
+		return true
 	}
+	return false
 }

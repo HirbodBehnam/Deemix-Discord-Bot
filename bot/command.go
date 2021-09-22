@@ -17,6 +17,9 @@ const (
 	CommandPlay
 	CommandStop
 	CommandRepo
+	CommandPlayingTrack
+	CommandSkip
+	CommandQueueView
 )
 
 // Parse parses the command given to bot as Command
@@ -33,6 +36,12 @@ func (c *Command) Parse(input string) error {
 		*c = CommandHelp
 	case "repo":
 		*c = CommandRepo
+	case "playing":
+		*c = CommandPlayingTrack
+	case "skip":
+		*c = CommandSkip
+	case "queue":
+		*c = CommandQueueView
 	default:
 		return InvalidCommandError
 	}

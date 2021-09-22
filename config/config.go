@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const Version = "0.1.0"
+const Version = "0.2.0"
 const Repo = "https://www.github.com/HirbodBehnam"
 
 var HelpMessage string
@@ -36,7 +36,10 @@ func LoadConfig(location string) {
 	// Fix help message
 	HelpMessage = "Welcome to my private music bot v" + Version + ". Here are the list of commands which you can use:\n" +
 		Config.Prefix + "help : Show this message again\n" +
-		Config.Prefix + "play <link>/<keyword> : Play a song from deezer or search and play a song from deezer; This command does nothing if a music is already playing\n" +
+		Config.Prefix + "play <link>/<keyword> : Play a song from deezer or search and play a song from deezer.\n" +
+		Config.Prefix + "skip : Skip the current song\n" +
+		Config.Prefix + "queue : Show the queue\n" +
+		Config.Prefix + "playing : Show playing song name\n" +
 		Config.Prefix + "stop : Stops the playing music\n" +
 		Config.Prefix + "repo : Show the source code"
 }
