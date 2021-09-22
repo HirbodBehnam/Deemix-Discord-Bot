@@ -31,6 +31,7 @@ func RunBot() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 	_ = dg.Close()
+	log.Println("Clean shutdown the bot")
 }
 
 func onReady(s *discordgo.Session, _ *discordgo.Ready) {
@@ -93,19 +94,17 @@ func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, tex
 	// Initialize the stop channel
 	defer serverList.DeleteServer(guildID)
 	// Search the music if needed
-	track, found := deezer.KeywordToLink(text)
-	if !found {
-		_, _ = s.ChannelMessageSend(textChannelID, "Music not found")
+	track, err := deezer.KeywordToLink(text)
+	if err != nil {
+		_, _ = s.ChannelMessageSend(textChannelID, "Cannot play this music: "+err.Error())
 		return
 	}
 	// Download the music
-	log.Println("downloading from deezer")
 	tempDir, err := deezer.Download(track.Link, serverState.stopChan)
 	if err != nil {
 		log.Println("cannot download the music from deezer:", err)
 		return
 	}
-	log.Println("done downloading from deezer")
 	defer tempDir.Delete()
 	// Check downloaded file
 	musics := tempDir.GetMusics()
@@ -113,7 +112,7 @@ func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, tex
 		_, _ = s.ChannelMessageSend(textChannelID, "Music not found")
 		return
 	}
-	_, _ = s.ChannelMessageSend(textChannelID, "Playing "+track.Title)
+	_, _ = s.ChannelMessageSend(textChannelID, "Playing "+track.String())
 	// Join the channel
 	vc, err := s.ChannelVoiceJoin(guildID, voiceChannelID, false, true)
 	if err != nil {

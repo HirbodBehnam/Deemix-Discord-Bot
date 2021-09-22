@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-const Version = "0.0.0"
-const Repo = "https://www.github.com"
+const Version = "0.1.0"
+const Repo = "https://www.github.com/HirbodBehnam"
 
 var HelpMessage string
 

@@ -11,15 +11,35 @@ import (
 type Track struct {
 	// The title (name) of the song
 	Title string
+	// The artist name
+	Artist string
 	// The link to the song
 	Link string
 }
 
+func (t Track) String() string {
+	return t.Artist + " - " + t.Title
+}
+
 type trackSearchResponse struct {
-	Data []struct {
-		Title string `json:"title"`
-		Link  string `json:"link"`
-	} `json:"data"`
+	Data []trackInfoResponse `json:"data"`
+}
+
+type trackInfoResponse struct {
+	Title  string `json:"title"`
+	Link   string `json:"link"`
+	Artist struct {
+		Name string `json:"name"`
+	} `json:"artist"`
+}
+
+// Track converts trackInfoResponse to Track
+func (t trackInfoResponse) Track() Track {
+	return Track{
+		Title:  t.Title,
+		Link:   t.Link,
+		Artist: t.Artist.Name,
+	}
 }
 
 // TempDir is a simple structure which can hold the path to a temporary directory
