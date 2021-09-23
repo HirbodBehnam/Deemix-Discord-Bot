@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-const Version = "0.2.0"
+const Version = "0.2.1"
 const Repo = "https://www.github.com/HirbodBehnam"
 
 var HelpMessage string
@@ -39,6 +39,8 @@ func LoadConfig(location string) {
 		Config.Prefix + "play <link>/<keyword> : Play a song from deezer or search and play a song from deezer.\n" +
 		Config.Prefix + "skip : Skip the current song\n" +
 		Config.Prefix + "queue : Show the queue\n" +
+		Config.Prefix + "remove <index> : Removes the nth track from queue\n" +
+		Config.Prefix + "pop : Removes the last track from queue\n" +
 		Config.Prefix + "playing : Show playing song name\n" +
 		Config.Prefix + "stop : Stops the playing music\n" +
 		Config.Prefix + "repo : Show the source code"

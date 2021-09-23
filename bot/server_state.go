@@ -107,6 +107,64 @@ func (s *ServersState) GetQueueText(guildID string) string {
 	return queue.String()
 }
 
+// RemoveQueuedTrack removes a queued track from a server
+// The index starts at 1
+func (s *ServersState) RemoveQueuedTrack(guildID string, index int) (ok bool) {
+	// Get the server
+	s.mu.RLock()
+	server, exists := s.servers[guildID]
+	s.mu.RUnlock()
+	// Remove the track
+	if !exists {
+		return false
+	}
+	// Special case: First music is the playing one. Just skip it
+	if index == 1 {
+		server.skipChan <- struct{}{}
+		return true
+	}
+	// Loop and find remove index
+	index--
+	server.mu.Lock()
+	// If the index is invalid don't do anything
+	if index <= 0 || index >= server.queue.Len() {
+		server.mu.Unlock()
+		return false
+	}
+	// Loop until we reach the specified track and remove it
+	for head := server.queue.Front(); head != nil; head = head.Next() {
+		if index == 0 {
+			server.queue.Remove(head)
+			break
+		}
+		index--
+	}
+	server.mu.Unlock()
+	return true
+}
+
+// Pop removes the last track of queued server
+func (s *ServersState) Pop(guildID string) (ok bool) {
+	// Get the server
+	s.mu.RLock()
+	server, exists := s.servers[guildID]
+	s.mu.RUnlock()
+	// Remove the track
+	if !exists {
+		return false
+	}
+	// Check the queue
+	server.mu.Lock()
+	if server.queue.Len() == 1 {
+		// I could also send this in skip channel
+		server.stopChan <- struct{}{}
+	} else {
+		server.queue.Remove(server.queue.Back())
+	}
+	server.mu.Unlock()
+	return true
+}
+
 // DequeTrack removes the currently playing track from a server (first track in list)
 // It also returns the number of remaining tracks
 func (s *ServerState) DequeTrack() (remainingTracks int) {
