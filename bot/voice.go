@@ -78,7 +78,10 @@ func playMusicInVoice(s *discordgo.Session, vc *discordgo.VoiceConnection, serve
 		return false
 	}
 	defer encodeSession.Cleanup()
-	dca.NewStream(encodeSession, vc, done)
+	// Create a stream
+	stream := dca.NewStream(encodeSession, vc, done)
+	serverState.SetVoiceSession(stream)
+	defer serverState.RemoveVoiceSession()
 	// Wait either the stream is done, or the bot is stopped
 	select {
 	case err = <-done:

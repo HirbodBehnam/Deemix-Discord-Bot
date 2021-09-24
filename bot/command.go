@@ -23,6 +23,8 @@ const (
 	CommandQueueView
 	CommandQueueRemove
 	CommandQueuePop
+	CommandPause
+	CommandResume
 )
 
 // Parse parses the command given to bot as Command
@@ -51,6 +53,10 @@ func (c *Command) Parse(input string) error {
 		*c = CommandQueueView
 	case "pop":
 		*c = CommandQueuePop
+	case "pause":
+		*c = CommandPause
+	case "resume":
+		*c = CommandResume
 	default:
 		return InvalidCommandError
 	}

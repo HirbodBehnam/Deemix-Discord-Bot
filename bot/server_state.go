@@ -3,6 +3,7 @@ package bot
 import (
 	"Deemix-Discord-Bot/deezer"
 	"container/list"
+	"github.com/jonas747/dca"
 	"math"
 	"strconv"
 	"strings"
@@ -24,6 +25,8 @@ type ServerState struct {
 	// Queue is a queue of tracks which are playing.
 	// Objects in this queue are the type of deezer.Track
 	queue *list.List
+	// The voice session
+	session *dca.StreamingSession
 	// Mutex to lock the server state
 	mu sync.RWMutex
 }
@@ -165,6 +168,23 @@ func (s *ServersState) Pop(guildID string) (ok bool) {
 	return true
 }
 
+// Pause pauses or unpauses the playing music
+func (s *ServersState) Pause(guildID string, paused bool) {
+	// Get the server
+	s.mu.RLock()
+	server, exists := s.servers[guildID]
+	s.mu.RUnlock()
+	// Set the status
+	if !exists {
+		return
+	}
+	server.mu.RLock()
+	if server.session != nil {
+		server.session.SetPaused(paused)
+	}
+	server.mu.RUnlock()
+}
+
 // DequeTrack removes the currently playing track from a server (first track in list)
 // It also returns the number of remaining tracks
 func (s *ServerState) DequeTrack() (remainingTracks int) {
@@ -197,4 +217,18 @@ func (s *ServerState) GetPlayingTrack() (track deezer.Track, exists bool) {
 	}
 	s.mu.RUnlock()
 	return
+}
+
+// SetVoiceSession sets the voice session of a server
+func (s *ServerState) SetVoiceSession(session *dca.StreamingSession) {
+	s.mu.Lock()
+	s.session = session
+	s.mu.Unlock()
+}
+
+// RemoveVoiceSession removes the voice session of a server
+func (s *ServerState) RemoveVoiceSession() {
+	s.mu.Lock()
+	s.session = nil
+	s.mu.Unlock()
 }

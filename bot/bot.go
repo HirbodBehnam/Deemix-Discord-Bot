@@ -73,6 +73,10 @@ func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		serverList.Skip(g.ID)
 	case CommandQueueView:
 		_, _ = s.ChannelMessageSendReply(c.ID, serverList.GetQueueText(g.ID), m.Reference())
+	case CommandPause:
+		serverList.Pause(g.ID, true)
+	case CommandResume:
+		serverList.Pause(g.ID, false)
 	case CommandQueueRemove:
 		index, err := strconv.Atoi(strings.Trim(m.Content[len(config.Config.Prefix)+len(removeFromQueueCommand):], " "))
 		if err != nil {
