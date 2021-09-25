@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 // ServersState is a list of all servers which are currently playing music
@@ -27,8 +28,28 @@ type ServerState struct {
 	queue *list.List
 	// The voice session
 	session *dca.StreamingSession
+	// When was the music player paused
+	pausedTime time.Time
 	// Mutex to lock the server state
 	mu sync.RWMutex
+}
+
+// cleanupIdleServers makes the bot leave the servers which have been idle for too long
+func (s *ServersState) cleanupIdleServers() {
+	for {
+		time.Sleep(time.Minute * 5)
+		now := time.Now()
+		s.mu.RLock()
+		for _, server := range s.servers {
+			server.mu.RLock()
+			// Get all the servers which are paused for more than a minute
+			if !server.pausedTime.IsZero() && now.Sub(server.pausedTime) > time.Minute*5 {
+				server.stopChan <- struct{}{}
+			}
+			server.mu.RUnlock()
+		}
+		s.mu.RUnlock()
+	}
 }
 
 // Stop stops the music which is currently playing on a server
@@ -178,11 +199,16 @@ func (s *ServersState) Pause(guildID string, paused bool) {
 	if !exists {
 		return
 	}
-	server.mu.RLock()
+	server.mu.Lock()
 	if server.session != nil {
 		server.session.SetPaused(paused)
+		if paused {
+			server.pausedTime = time.Now()
+		} else {
+			server.pausedTime = time.Time{}
+		}
 	}
-	server.mu.RUnlock()
+	server.mu.Unlock()
 }
 
 // DequeTrack removes the currently playing track from a server (first track in list)

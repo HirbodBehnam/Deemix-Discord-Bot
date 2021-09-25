@@ -13,6 +13,9 @@ import (
 
 // RunBot runs the discord bot with config.Config configurations
 func RunBot() {
+	// Start the server cleanup
+	go serverList.cleanupIdleServers()
+	// Start the discord bot
 	dg, err := discordgo.New("Bot " + config.Config.Token)
 	if err != nil {
 		log.Fatalln("Error creating Discord session: ", err)
