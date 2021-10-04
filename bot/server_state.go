@@ -30,6 +30,8 @@ type ServerState struct {
 	session *dca.StreamingSession
 	// When was the music player paused
 	pausedTime time.Time
+	// The channelID which the bot has joined
+	channelID string
 	// Mutex to lock the server state
 	mu sync.RWMutex
 }
@@ -77,7 +79,7 @@ func (s *ServersState) Skip(guildID string) (skipped bool) {
 // Play registers a server as playing and returns the ServerState which corresponds to this server
 // If the server exists, it will add the "track" to it's queue
 // If the server does not exist, it will initialize the server object
-func (s *ServersState) Play(guildID string, track deezer.Track) (state *ServerState, newServer bool) {
+func (s *ServersState) Play(guildID, voiceChannelID string, track deezer.Track) (state *ServerState, newServer bool) {
 	s.mu.Lock()
 	state, exists := s.servers[guildID]
 	if !exists {
@@ -87,6 +89,8 @@ func (s *ServersState) Play(guildID string, track deezer.Track) (state *ServerSt
 			skipChan: make(chan struct{}, math.MaxInt32),
 			// We also create a linked list to add the track
 			queue: list.New(),
+			// Add the channel ID
+			channelID: voiceChannelID,
 		}
 		s.servers[guildID] = state
 	}
@@ -231,6 +235,17 @@ func (s *ServersState) GetPlayingTrack(guildID string) (track deezer.Track, exis
 		return server.GetPlayingTrack()
 	}
 	return
+}
+
+// HasPlayingMusicInChannel checks if the bot is playing a music in specified voice channel and server
+func (s *ServersState) HasPlayingMusicInChannel(guildID, channelID string) bool {
+	s.mu.RLock()
+	server, ok := s.servers[guildID]
+	s.mu.RUnlock()
+	if !ok {
+		return false
+	}
+	return server.channelID == channelID
 }
 
 // GetPlayingTrack gets the currently playing track from a list

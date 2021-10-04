@@ -18,7 +18,7 @@ func playMusic(s *discordgo.Session, guildID, voiceChannelID, textChannelID, tex
 		return
 	}
 	// Add the track to server queue
-	serverState, newServer := serverList.Play(guildID, track)
+	serverState, newServer := serverList.Play(guildID, voiceChannelID, track)
 	if !newServer { // If this server is playing a music just send the info about queue and do nothing
 		_, _ = s.ChannelMessageSend(textChannelID, "Queued "+track.String())
 		return

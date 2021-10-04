@@ -22,6 +22,7 @@ func RunBot() {
 	}
 	dg.AddHandler(onReady)
 	dg.AddHandler(onMessage)
+	dg.AddHandler(onVoiceUpdate)
 	dg.Identify.Intents = discordgo.IntentsGuilds | discordgo.IntentsGuildMessages | discordgo.IntentsGuildVoiceStates
 	err = dg.Open()
 	if err != nil {
@@ -37,6 +38,31 @@ func RunBot() {
 
 func onReady(s *discordgo.Session, _ *discordgo.Ready) {
 	_ = s.UpdateGameStatus(0, config.Config.Prefix+"help")
+}
+
+func onVoiceUpdate(s *discordgo.Session, m *discordgo.VoiceStateUpdate) {
+	if m.ChannelID == "" && m.BeforeUpdate != nil { // User disconnected from a voice channel
+		// Check if bot has a playing music in this channel
+		if !serverList.HasPlayingMusicInChannel(m.GuildID, m.BeforeUpdate.ChannelID) {
+			return
+		}
+		// If so, check if everyone has left it
+		guild, err := s.State.Guild(m.GuildID)
+		if err != nil {
+			// Should not happen
+			serverList.Stop(m.GuildID)
+			return
+		}
+		counter := 0
+		for _, key := range guild.VoiceStates {
+			if key.ChannelID == m.BeforeUpdate.ChannelID {
+				counter++
+			}
+		}
+		if counter == 1 { // only bot remains...
+			serverList.Stop(m.GuildID)
+		}
+	}
 }
 
 func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
