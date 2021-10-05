@@ -2,6 +2,7 @@ package bot
 
 import (
 	"Deemix-Discord-Bot/config"
+	"Deemix-Discord-Bot/deezer"
 	"github.com/bwmarrin/discordgo"
 	"log"
 	"os"
@@ -142,5 +143,25 @@ func onMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 		} else {
 			_, _ = s.ChannelMessageSendReply(c.ID, "Currently playing: "+track.String(), m.Reference())
 		}
+	case CommandSearch:
+		tracks, err := deezer.SearchTrack(strings.Trim(m.Content[len(config.Config.Prefix)+len(searchCommand):], " "))
+		if err != nil {
+			_, _ = s.ChannelMessageSendReply(c.ID, "Cannot search the deezer", m.Reference())
+			log.Println("Cannot search the deezer", err)
+			return
+		}
+		if len(tracks) == 0 {
+			_, _ = s.ChannelMessageSendReply(c.ID, "No track found! Deezer search sucks a bit!", m.Reference())
+			return
+		}
+		// Create the search message
+		var sb strings.Builder
+		sb.Grow(4096)
+		//sb.WriteString("```")
+		for _, track := range tracks {
+			track.Append(&sb)
+		}
+		//sb.WriteString("```")
+		_, _ = s.ChannelMessageSendReply(c.ID, sb.String(), m.Reference())
 	}
 }

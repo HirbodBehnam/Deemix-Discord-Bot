@@ -4,7 +4,7 @@ A simple discord music bot which uses deemix to play music.
 ## Features
 * Easy to setup
 * Easy on resources
-* Use deezer instead of youtube. This is a disadvantage as well.
+* Use deezer instead of YouTube. This is a disadvantage as well.
 
 ## Setup
 At first create a discord bot from [here](https://discord.com/developers/applications).

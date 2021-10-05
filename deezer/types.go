@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Track is the entry of track searches
@@ -21,16 +22,44 @@ func (t Track) String() string {
 	return t.Artist + " - " + t.Title
 }
 
+// SearchedTrack is the result of a search
+type SearchedTrack struct {
+	// It contains the basic info of a Track
+	Track
+	// The album name
+	Album string
+	// The duration of music
+	Duration time.Duration
+}
+
+func (t SearchedTrack) Append(builder *strings.Builder) {
+	builder.WriteString("\nTitle: ")
+	builder.WriteString(t.Title)
+	builder.WriteString("\nAlbum: ")
+	builder.WriteString(t.Album)
+	builder.WriteString("\nArtist: ")
+	builder.WriteString(t.Artist)
+	builder.WriteString("\nDuration: ")
+	builder.WriteString(t.Duration.String())
+	builder.WriteString("\nLink:\n`")
+	builder.WriteString(t.Link)
+	builder.WriteString("`\n\n")
+}
+
 type trackSearchResponse struct {
 	Data []trackInfoResponse `json:"data"`
 }
 
 type trackInfoResponse struct {
-	Title  string `json:"title"`
-	Link   string `json:"link"`
-	Artist struct {
+	Title    string `json:"title"`
+	Link     string `json:"link"`
+	Duration int    `json:"duration"`
+	Artist   struct {
 		Name string `json:"name"`
 	} `json:"artist"`
+	Album struct {
+		Title string `json:"title"`
+	} `json:"album"`
 }
 
 // Track converts trackInfoResponse to Track
@@ -39,6 +68,15 @@ func (t trackInfoResponse) Track() Track {
 		Title:  t.Title,
 		Link:   t.Link,
 		Artist: t.Artist.Name,
+	}
+}
+
+// SearchedTrack converts trackInfoResponse to SearchedTrack
+func (t trackInfoResponse) SearchedTrack() SearchedTrack {
+	return SearchedTrack{
+		Track:    t.Track(),
+		Album:    t.Album.Title,
+		Duration: time.Second * time.Duration(t.Duration),
 	}
 }
 

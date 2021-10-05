@@ -9,6 +9,7 @@ var InvalidCommandError = errors.New("invalid command")
 
 const playCommand = "play"
 const removeFromQueueCommand = "remove"
+const searchCommand = "search"
 
 // Command is a command which is given to the bot
 type Command byte
@@ -25,6 +26,7 @@ const (
 	CommandQueuePop
 	CommandPause
 	CommandResume
+	CommandSearch
 )
 
 // Parse parses the command given to bot as Command
@@ -36,6 +38,10 @@ func (c *Command) Parse(input string) error {
 	}
 	if strings.HasPrefix(input, removeFromQueueCommand) {
 		*c = CommandQueueRemove
+		return nil
+	}
+	if strings.HasPrefix(input, searchCommand) {
+		*c = CommandSearch
 		return nil
 	}
 	switch input {

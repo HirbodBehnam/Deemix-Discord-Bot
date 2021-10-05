@@ -6,8 +6,8 @@ import (
 	"os"
 )
 
-const Version = "0.2.1"
-const Repo = "https://www.github.com/HirbodBehnam"
+const Version = "0.3.0"
+const Repo = "https://github.com/HirbodBehnam/Deemix-Discord-Bot"
 
 var HelpMessage string
 
@@ -42,6 +42,7 @@ func LoadConfig(location string) {
 		Config.Prefix + "remove <index> : Removes the nth track from queue\n" +
 		Config.Prefix + "pop : Removes the last track from queue\n" +
 		Config.Prefix + "playing : Show playing song name\n" +
+		Config.Prefix + "search <keyword> : Search a track in deezer\n" +
 		Config.Prefix + "stop : Stops the playing music\n" +
 		Config.Prefix + "repo : Show the source code"
 }

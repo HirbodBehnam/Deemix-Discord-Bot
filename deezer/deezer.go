@@ -32,7 +32,7 @@ const trackSearchEndpoint = "https://api.deezer.com/search"
 const maxSearchEntries = 5
 
 // SearchTrack searches the deezer for a track by keyword
-func SearchTrack(keyword string) ([]Track, error) {
+func SearchTrack(keyword string) ([]SearchedTrack, error) {
 	// Build the request and do it
 	req, err := http.NewRequest("GET", trackSearchEndpoint, nil)
 	if err != nil {
@@ -53,12 +53,12 @@ func SearchTrack(keyword string) ([]Track, error) {
 		return nil, err
 	}
 	// Convert the raw response to SearchResult array
-	result := make([]Track, 0, maxSearchEntries)
+	result := make([]SearchedTrack, 0, maxSearchEntries)
 	for i, entry := range respRaw.Data {
 		if i >= maxSearchEntries { // limit entries of result
 			break
 		}
-		result = append(result, entry.Track())
+		result = append(result, entry.SearchedTrack())
 	}
 	return result, nil
 }
@@ -89,7 +89,7 @@ func KeywordToLink(text string) (track Track, err error) {
 	if len(tracks) == 0 {
 		return Track{}, errors.New("track not found")
 	}
-	return tracks[0], nil
+	return tracks[0].Track, nil
 }
 
 // trackFromUrl tries to get a Track from url
