@@ -32,15 +32,15 @@ const (
 // Parse parses the command given to bot as Command
 // Please note that input must not contain the prefix
 func (c *Command) Parse(input string) error {
-	if strings.HasPrefix(input, playCommand) {
+	if strings.HasPrefix(input, playCommand+" ") {
 		*c = CommandPlay
 		return nil
 	}
-	if strings.HasPrefix(input, removeFromQueueCommand) {
+	if strings.HasPrefix(input, removeFromQueueCommand+" ") {
 		*c = CommandQueueRemove
 		return nil
 	}
-	if strings.HasPrefix(input, searchCommand) {
+	if strings.HasPrefix(input, searchCommand+" ") {
 		*c = CommandSearch
 		return nil
 	}
